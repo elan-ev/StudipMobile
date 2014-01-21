@@ -18,7 +18,14 @@ class Quickdail {
         return $stmt->fetchColumn(0);
     }
 
-    static function get_next_courses($user_id)
+    /*****
+     * get_next_courses return the next n courses of the day
+     * @param string $user_id The ID of the current User
+     * @param string $count The number of appointments
+     * @return array $ret a Array of appointments
+     ****/
+    
+    static function get_next_courses($user_id, $count=3)
     {
         $ret = array();
 
@@ -34,7 +41,7 @@ class Quickdail {
         $stmt_next = \DBManager::get()->prepare('SELECT termin_id FROM termine
             WHERE range_id IN (:seminar_ids)
                 AND date >= (UNIX_TIMESTAMP() - 3600)
-            ORDER BY date ASC LIMIT 3');
+            ORDER BY date ASC LIMIT '.$count);
         $stmt_next->bindValue(':seminar_ids', $seminar_ids, \StudipPDO::PARAM_ARRAY);
 
         $stmt_next->execute();
