@@ -59,7 +59,6 @@ $this->set_layout("layouts/single_page");
       <p>
         <? $sem = Seminar::getInstance($date->getRangeId()) ?>
         <?=Studip\Mobile\Helper::out($sem->name) ?>
-        <? print_r($date->getRelatedPersons()) ?>
       </p>
 
       <p>
