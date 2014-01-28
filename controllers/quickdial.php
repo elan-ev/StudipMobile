@@ -15,8 +15,8 @@ class QuickdialController extends StudipMobileAuthenticatedController
 {
     function index_action()
     {
-        // get next 5 courses of the day
-        $this->next_courses = Quickdail::get_next_courses($this->currentUser()->id);
+        // get next n courses of the day
+        $this->next_courses = Quickdail::get_next_courses($this->currentUser()->id, '5');
         $this->user_id = $this->currentUser()->id;
 
 
