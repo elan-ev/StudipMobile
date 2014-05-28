@@ -28,7 +28,6 @@ class Activity {
         $now = time();
         $chdate = $now - 24 * 60 * 60 * $days;
         $items = array();
-
         $params = array();
         $params[':chdate'] = $chdate;
 
@@ -50,7 +49,7 @@ class Activity {
             $inst_filter = "user_inst.user_id = :user_id AND Institut_id = :range_id";
 
             $params[':user_id'] = $user_id;
-            $params[':range_id'] = $range_id;
+            $params[':range_id'] = $range;
         } else {
             $sem_filter = "seminar_user.user_id = :user_id";
             $inst_filter = "user_inst.user_id = :user_id";
@@ -63,63 +62,120 @@ class Activity {
         $user_fields = 'auth_user_md5.user_id AS author_id, auth_user_md5.Vorname, auth_user_md5.Nachname, auth_user_md5.username';
 
         // forum
-        $sql = "SELECT px_topics.*, $sem_fields
-                FROM px_topics
-                JOIN auth_user_md5 USING (user_id)
-                JOIN seminar_user USING (Seminar_id)
-                JOIN seminare USING (Seminar_id)
-                WHERE $sem_filter AND px_topics.chdate > :chdate ". $seminar_add_query;
+        if (!class_exists('SemClass')) {
+            $sql = "SELECT px_topics.*, $sem_fields
+                    FROM px_topics
+                    JOIN auth_user_md5 USING (user_id)
+                    JOIN seminar_user USING (Seminar_id)
+                    JOIN seminare USING (Seminar_id)
+                    WHERE $sem_filter AND px_topics.chdate > :chdate ". $seminar_add_query . " ORDER BY px_topics.chdate DESC LIMIT 100";
 
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
 
-        while ($row = $stmt->fetch()) {
-            $items[] = array(
-                'id' => $row['topic_id'],
-                'title' => $row['name'],
-                'author' => $row['Vorname'] . ' ' . $row['Nachname'],
-                'author_id' => $row['author_id'],
-                'link' => \URLHelper::getLink('forum.php#anker',
-                    array('cid' => $row['Seminar_id'], 'view' => 'tree', 'open' => $row['topic_id'])),
-                'updated' => $row['chdate'],
-                'summary' => sprintf('%s %s hat im Forum der Veranstaltung "%s" den Beitrag "%s" geschrieben.',
-                    $row['Vorname'], $row['Nachname'], $row['Name'], $row['name']),
-                'content' => $row['description'],
-                'category' => 'forum'
-            );
-            // ersetzt, da forum_kill_edit nicht auffindbar, bzw nur vom root nutzbar
-            //'content' => forum_kill_edit($row['description']),
+            while ($row = $stmt->fetch()) {
+                $items[] = array(
+                    'id' => $row['topic_id'],
+                    'title' => $row['name'],
+                    'author' => $row['Vorname'] . ' ' . $row['Nachname'],
+                    'author_id' => $row['author_id'],
+                    'link' => \URLHelper::getLink('forum.php#anker',
+                        array('cid' => $row['Seminar_id'], 'view' => 'tree', 'open' => $row['topic_id'])),
+                    'updated' => $row['chdate'],
+                    'summary' => sprintf('%s %s hat im Forum der Veranstaltung "%s" den Beitrag "%s" geschrieben.',
+                        $row['Vorname'], $row['Nachname'], $row['Name'], $row['name']),
+                    'content' => $row['description'],
+                    'category' => 'forum'
+                );
+                // ersetzt, da forum_kill_edit nicht auffindbar, bzw nur vom root nutzbar
+                //'content' => forum_kill_edit($row['description']),
+            }
+
+
+            $sql = "SELECT px_topics.*, $inst_fields
+                    FROM px_topics
+                    JOIN auth_user_md5 USING (user_id)
+                    JOIN user_inst ON (Seminar_id = Institut_id)
+                    JOIN Institute USING (Institut_id)
+                    WHERE $inst_filter AND px_topics.chdate > :chdate $seminar_add_query ORDER BY px_topics.chdate DESC LIMIT 100";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+
+            while ($row = $stmt->fetch()) {
+                $items[] = array(
+                    'id' => $row['topic_id'],
+                    'title' => $row['name'],
+                    'author' => $row['Vorname'] . ' ' . $row['Nachname'],
+                    'author_id' => $row['author_id'],
+                    'link' => \URLHelper::getLink('forum.php#anker',
+                        array('cid' => $row['Institut_id'], 'view' => 'tree', 'open' => $row['topic_id'])),
+                    'updated' => $row['chdate'],
+                    'summary' => sprintf('%s %s hat im Forum der Einrichtung "%s" den Beitrag "%s" geschrieben.',
+                        $row['Vorname'], $row['Nachname'], $row['Name'], $row['name']),
+                    'content' => $row['description'],
+                    'category' => 'forum'
+                );
+                // ersetzt, da forum_kill_edit nicht auffindbar, bzw nur vom root nutzbar
+                //'content' => forum_kill_edit($row['description']),
+            }
+        } else {
+        // forum
+
+            $sql = "SELECT forum_entries.*, $sem_fields
+                    FROM forum_entries
+                    JOIN auth_user_md5 USING (user_id)
+                    JOIN seminar_user USING (Seminar_id)
+                    JOIN seminare USING (Seminar_id)
+                    WHERE $sem_filter AND forum_entries.seminar_id <> forum_entries.topic_id AND forum_entries.chdate > :chdate ORDER BY forum_entries.chdate DESC LIMIT 100";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+
+            while ($row = $stmt->fetch()) {
+                $items[] = array(
+                    'id' => $row['topic_id'],
+                    'title' => 'Forum: ' . $row['name'],
+                    'author' => $row['Vorname'] . ' ' . $row['Nachname'],
+                    'author_id' => $row['author_id'],
+                    'link' => \URLHelper::getLink('plugins.php/coreforum/index/index/'.  $row['topic_id'] . '#' . $row['topic_id'],
+                        array('cid' => $row['seminar_id'])),
+                    'updated' => $row['chdate'],
+                    'summary' => $row['name'] ? sprintf('%s %s hat im Forum der Veranstaltung "%s" den Beitrag "%s" geschrieben.',
+                        $row['Vorname'], $row['Nachname'], $row['Name'], $row['name']) : sprintf('%s %s hat im Forum der Veranstaltung "%s" einen Beitrag geschrieben.',
+                        $row['Vorname'], $row['Nachname'], $row['Name']),
+                    'content' => $row['content'],
+                    'category' => 'forum'
+                );
+            }
+
+            $sql = "SELECT forum_entries.*, $inst_fields
+                    FROM forum_entries
+                    JOIN auth_user_md5 USING (user_id)
+                    JOIN user_inst ON (seminar_id = Institut_id)
+                    JOIN Institute USING (Institut_id)
+                    WHERE $inst_filter AND forum_entries.seminar_id <> forum_entries.topic_id AND forum_entries.chdate > :chdate ORDER BY forum_entries.chdate DESC LIMIT 100";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+
+            while ($row = $stmt->fetch()) {
+                $items[] = array(
+                    'id' => $row['topic_id'],
+                    'title' => 'Forum: ' . $row['name'],
+                    'author' => $row['Vorname'] . ' ' . $row['Nachname'],
+                    'author_id' => $row['author_id'],
+                    'link' => \URLHelper::getLink('plugins.php/coreforum/index/index/'.  $row['topic_id'] . '#' . $row['topic_id'],
+                        array('cid' => $row['seminar_id'])),
+                    'updated' => $row['chdate'],
+                    'summary' => $row['name'] ? sprintf('%s %s hat im Forum der Einrichtung "%s" den Beitrag "%s" geschrieben.',
+                        $row['Vorname'], $row['Nachname'], $row['Name'], $row['name']) : sprintf('%s %s hat im Forum der Einrichtung "%s" einen Beitrag geschrieben.',
+                        $row['Vorname'], $row['Nachname'], $row['Name']),
+                    'content' => $row['content'],
+                    'category' => 'forum'
+                );
+            }
         }
-
-
-        $sql = "SELECT px_topics.*, $inst_fields
-                FROM px_topics
-                JOIN auth_user_md5 USING (user_id)
-                JOIN user_inst ON (Seminar_id = Institut_id)
-                JOIN Institute USING (Institut_id)
-                WHERE $inst_filter AND px_topics.chdate > :chdate $seminar_add_query";
-
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-
-        while ($row = $stmt->fetch()) {
-            $items[] = array(
-                'id' => $row['topic_id'],
-                'title' => $row['name'],
-                'author' => $row['Vorname'] . ' ' . $row['Nachname'],
-                'author_id' => $row['author_id'],
-                'link' => \URLHelper::getLink('forum.php#anker',
-                    array('cid' => $row['Institut_id'], 'view' => 'tree', 'open' => $row['topic_id'])),
-                'updated' => $row['chdate'],
-                'summary' => sprintf('%s %s hat im Forum der Einrichtung "%s" den Beitrag "%s" geschrieben.',
-                    $row['Vorname'], $row['Nachname'], $row['Name'], $row['name']),
-                'content' => $row['description'],
-                'category' => 'forum'
-            );
-            // ersetzt, da forum_kill_edit nicht auffindbar, bzw nur vom root nutzbar
-            //'content' => forum_kill_edit($row['description']),
-        }
-
         // files
 
         $sql = "SELECT dokumente.*, $sem_fields
@@ -127,7 +183,7 @@ class Activity {
                 JOIN auth_user_md5 USING (user_id)
                 JOIN seminar_user USING (Seminar_id)
                 JOIN seminare USING (Seminar_id)
-                WHERE $sem_filter AND dokumente.chdate > :chdate $seminar_add_query";
+                WHERE $sem_filter AND dokumente.chdate > :chdate $seminar_add_query ORDER BY dokumente.chdate DESC LIMIT 100";
 
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
@@ -156,7 +212,7 @@ class Activity {
                 JOIN auth_user_md5 USING (user_id)
                 JOIN user_inst ON (seminar_id = Institut_id)
                 JOIN Institute USING (Institut_id)
-                WHERE $inst_filter AND dokumente.chdate > :chdate $seminar_add_query";
+                WHERE $inst_filter AND dokumente.chdate > :chdate $seminar_add_query ORDER BY dokumente.chdate DESC LIMIT 100";
 
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
@@ -188,7 +244,7 @@ class Activity {
                 JOIN auth_user_md5 USING (user_id)
                 JOIN seminar_user ON (range_id = Seminar_id)
                 JOIN seminare USING (Seminar_id)
-                WHERE $sem_filter AND wiki.chdate > :chdate $seminar_add_query";
+                WHERE $sem_filter AND wiki.chdate > :chdate $seminar_add_query ORDER BY wiki.chdate DESC LIMIT 100";
 
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
@@ -215,7 +271,7 @@ class Activity {
                     JOIN auth_user_md5 USING (user_id)
                     JOIN user_inst ON (range_id = Institut_id)
                     JOIN Institute USING (Institut_id)
-                    WHERE $inst_filter AND wiki.chdate > :chdate ";
+                    WHERE $inst_filter AND wiki.chdate > :chdate ORDER BY wiki.chdate DESC LIMIT 100";
 
             $stmt = $db->prepare($sql);
             $stmt->execute($params);
@@ -244,7 +300,7 @@ class Activity {
                 JOIN auth_user_md5 USING (user_id)
                 JOIN seminar_user ON (range_id = Seminar_id)
                 JOIN seminare USING (Seminar_id)
-                WHERE $sem_filter AND scm.chdate > :chdate $seminar_add_query";
+                WHERE $sem_filter AND scm.chdate > :chdate $seminar_add_query ORDER BY scm.chdate DESC LIMIT 100";
 
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
@@ -271,7 +327,7 @@ class Activity {
                     JOIN auth_user_md5 USING (user_id)
                     JOIN user_inst ON (range_id = Institut_id)
                     JOIN Institute USING (Institut_id)
-                    WHERE $inst_filter AND scm.chdate > :chdate";
+                    WHERE $inst_filter AND scm.chdate > :chdate ORDER BY scm.chdate DESC LIMIT 100";
 
             $stmt = $db->prepare($sql);
             $stmt->execute($params);
@@ -300,7 +356,7 @@ class Activity {
                     FROM news
                     JOIN news_range USING (news_id)
                     JOIN auth_user_md5 USING (user_id)
-                    WHERE range_id = :range_id AND news.date BETWEEN :chdate AND :now";
+                    WHERE range_id = :range_id AND news.date BETWEEN :chdate AND :now ORDER BY news.date LIMIT 100";
 
             $stmt = $db->prepare($sql);
             $stmt->execute(array(':range_id' => $user_id, ':chdate' => $chdate, ':now' => $now));
@@ -327,7 +383,7 @@ class Activity {
                 JOIN auth_user_md5 USING (user_id)
                 JOIN seminar_user ON (range_id = Seminar_id)
                 JOIN seminare USING (Seminar_id)
-                WHERE $sem_filter AND news.date BETWEEN :chdate AND :now $seminar_add_query";
+                WHERE $sem_filter AND news.date BETWEEN :chdate AND :now $seminar_add_query ORDER BY news.date LIMIT 100";
 
         $stmt = $db->prepare($sql);
         $stmt->execute(array_merge(array(':now' => $now), $params));
@@ -355,7 +411,7 @@ class Activity {
                     JOIN auth_user_md5 USING (user_id)
                     JOIN user_inst ON (range_id = Institut_id)
                     JOIN Institute USING (Institut_id)
-                    WHERE $inst_filter AND news.date BETWEEN :chdate AND :now";
+                    WHERE $inst_filter AND news.date BETWEEN :chdate AND :now ORDER BY news.date LIMIT 100";
 
             $stmt = $db->prepare($sql);
             $stmt->execute(array_merge(array(':now' => $now), $params));
@@ -382,7 +438,7 @@ class Activity {
                 $sql = "SELECT vote.*, $user_fields
                         FROM vote
                         JOIN auth_user_md5 ON (author_id = user_id)
-                        WHERE range_id = :range_id AND vote.startdate BETWEEN :chdate AND :now";
+                        WHERE range_id = :range_id AND vote.startdate BETWEEN :chdate AND :now ORDER BY vote.startdate LIMIT 100";
 
                 $stmt = $db->prepare($sql);
                 $stmt->execute(array(':range_id' => $user_id, ':chdate' => $chdate, ':now' => $now));
@@ -410,7 +466,7 @@ class Activity {
                 JOIN auth_user_md5 ON (author_id = user_id)
                 JOIN seminar_user ON (range_id = Seminar_id)
                 JOIN seminare USING (Seminar_id)
-                WHERE $sem_filter AND vote.startdate BETWEEN :chdate AND :now $seminar_add_query";
+                WHERE $sem_filter AND vote.startdate BETWEEN :chdate AND :now $seminar_add_query ORDER BY vote.startdate LIMIT 100";
 
         $stmt = $db->prepare($sql);
         $stmt->execute(array_merge(array(':now' => $now), $params));
@@ -437,7 +493,7 @@ class Activity {
                     JOIN auth_user_md5 ON (author_id = user_id)
                     JOIN user_inst ON (range_id = Institut_id)
                     JOIN Institute USING (Institut_id)
-                    WHERE $inst_filter AND vote.startdate BETWEEN :chdate AND :now";
+                    WHERE $inst_filter AND vote.startdate BETWEEN :chdate AND :now ORDER BY vote.startdate LIMIT 100";
 
             $stmt = $db->prepare($sql);
             $stmt->execute(array_merge(array(':now' => $now), $params));
@@ -465,7 +521,7 @@ class Activity {
                         FROM eval
                         JOIN eval_range USING (eval_id)
                         JOIN auth_user_md5 ON (author_id = user_id)
-                        WHERE range_id = :range_id AND eval.startdate BETWEEN :chdate AND :now";
+                        WHERE range_id = :range_id AND eval.startdate BETWEEN :chdate AND :now ORDER BY eval.startdate LIMIT 100";
 
                 $stmt = $db->prepare($sql);
                 $stmt->execute(array(':range_id' => $user_id, ':chdate' => $chdate, ':now' => $now));
@@ -494,7 +550,7 @@ class Activity {
                 JOIN auth_user_md5 ON (author_id = user_id)
                 JOIN seminar_user ON (range_id = Seminar_id)
                 JOIN seminare USING (Seminar_id)
-                WHERE $sem_filter AND eval.startdate BETWEEN :chdate AND :now $seminar_add_query";
+                WHERE $sem_filter AND eval.startdate BETWEEN :chdate AND :now $seminar_add_query ORDER BY eval.startdate LIMIT 100";
 
         $stmt = $db->prepare($sql);
         $stmt->execute(array_merge(array(':now' => $now), $params));
@@ -522,7 +578,7 @@ class Activity {
                     JOIN auth_user_md5 ON (author_id = user_id)
                     JOIN user_inst ON (range_id = Institut_id)
                     JOIN Institute USING (Institut_id)
-                    WHERE $inst_filter AND eval.startdate BETWEEN :chdate AND :now";
+                    WHERE $inst_filter AND eval.startdate BETWEEN :chdate AND :now ORDER BY eval.startdate LIMIT 100";
 
         $stmt = $db->prepare($sql);
         $stmt->execute(array_merge(array(':now' => $now), $params));
@@ -549,10 +605,13 @@ class Activity {
         usort($items, create_function('$a, $b', 'return $b["updated"] - $a["updated"];'));
         $items = array_slice($items, 0, 100);
 
-
         # reset to the default set in plugins.php
         \URLHelper::setBaseUrl($GLOBALS['CANONICAL_RELATIVE_PATH_STUDIP']);
 
+        $items = array_map(function($i) {
+                $avatar_url = \Avatar::getAvatar($i['author_id'])->getURL(\Avatar::SMALL);
+                return array_merge($i, compact('avatar_url'));
+        }, $items);
 
         return $items;
     }
