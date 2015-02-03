@@ -308,7 +308,7 @@ class Activity {
         $module_slots = words('forum documents scm wiki');
 
         foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $seminar) {
-            $sem_class = $GLOBALS['SEM_CLASS'][$GLOBALS['SEM_TYPE'][$seminar['status']]["class"]];
+            $sem_class = $GLOBALS['SEM_CLASS'][$GLOBALS['SEM_TYPE'][$seminar['status']]['class']] ?: \SemClass::getDefaultSemClass();
             foreach ($module_slots as $slot) {
                 $module = $sem_class->getModule($slot);
                 $items = array_merge($items, self::getNotificationObjects($sem_class, $module, $slot, $seminar['Seminar_id'], $chdate, $user_id));
@@ -333,8 +333,10 @@ class Activity {
         foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $institute) {
             foreach ($module_slots as $slot) {
                 $class = 'Core' . $slot;
-                $module = new $class;
-                $items = array_merge($items, self::getNotificationObjects($sem_class, $module, $slot, $institute['Institut_id'], $chdate, $user_id));
+                if (class_exists($class)) {
+                    $module = new $class;
+                    $items = array_merge($items, self::getNotificationObjects($sem_class, $module, $slot, $institute['Institut_id'], $chdate, $user_id));
+                }
             }
 
             // workaround for v2.5 CoreForum that does not implement
@@ -359,9 +361,6 @@ class Activity {
     {
         $items = array();
 
-        if (!$module) {
-            return $items;
-        }
         $notifications = $module->getNotificationObjects($id, $chdate, $user_id);
 
         if ($notifications) {
