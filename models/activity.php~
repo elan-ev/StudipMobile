@@ -333,10 +333,8 @@ class Activity {
         foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $institute) {
             foreach ($module_slots as $slot) {
                 $class = 'Core' . $slot;
-                if (class_exists($class)) {
-                    $module = new $class;
-                    $items = array_merge($items, self::getNotificationObjects($sem_class, $module, $slot, $institute['Institut_id'], $chdate, $user_id));
-                }
+                $module = new $class;
+                $items = array_merge($items, self::getNotificationObjects($sem_class, $module, $slot, $institute['Institut_id'], $chdate, $user_id));
             }
 
             // workaround for v2.5 CoreForum that does not implement
@@ -396,7 +394,7 @@ class Activity {
             }
         }
 
-        return $items;
+        return studip_utf8decode($items);
     }
 
     private function workaroundGetNotificationObjectsFromForum($user_id, $course_id, $since)
