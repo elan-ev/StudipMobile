@@ -6,7 +6,9 @@ namespace Studip\Mobile;
 // !!! totaler pfad zum bild -> ändern
 // require evtl nicht möglich!
 require_once($STUDIP_BASE_PATH."lib/user_visible.inc.php");
-require_once($STUDIP_BASE_PATH."lib/classes/Institute.class.php");
+if (version_compare($GLOBALS['SOFTWARE_VERSION'], "3.1", '<=')) {
+    require_once($STUDIP_BASE_PATH."lib/classes/Institute.class.php");
+}
 
 class Profile {
 
