@@ -8,7 +8,7 @@ class CalendarModel {
     {
         require_once('app/models/calendar/schedule.php');
 
-        return \CalendarScheduleModel::getEntries($user->id, $current_semester, 0800, 2000, range(0, 6), false);
+        return \CalendarScheduleModel::getEntries($user->id, $current_semester, "0000", "2000", range(0, 6), false);
     }
 
     static function getCalendar($user, $start, $end)
