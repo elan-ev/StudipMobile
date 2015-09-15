@@ -310,8 +310,9 @@ class Activity {
         foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $seminar) {
             $sem_class = $GLOBALS['SEM_CLASS'][$GLOBALS['SEM_TYPE'][$seminar['status']]['class']] ?: \SemClass::getDefaultSemClass();
             foreach ($module_slots as $slot) {
-                $module = $sem_class->getModule($slot);
-                $items = array_merge($items, self::getNotificationObjects($sem_class, $module, $slot, $seminar['Seminar_id'], $chdate, $user_id));
+                if ($module = $sem_class->getModule($slot)) {
+                    $items = array_merge($items, self::getNotificationObjects($sem_class, $module, $slot, $seminar['Seminar_id'], $chdate, $user_id));
+                }
             }
 
             // workaround for v2.5 CoreForum that does not implement
