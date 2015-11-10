@@ -47,9 +47,10 @@ class CalendarModel {
             $calendar->getEvents(null, $start, $end);
             $termine = array();
             foreach ($calendar->events as $termin) {
+                $properties = $termin->getProperties();
                 $termine[] = array(
                     'id'          => $termin->id,
-                    'sem_id'      => $termin->properties['SEM_ID'] ?: null,
+                    'sem_id'      => $properties['SEM_ID'] ?: null,
 
                     'summary'     => $termin->getTitle(),
                     'begin'       => date('c', $termin->getStart()),
@@ -58,8 +59,8 @@ class CalendarModel {
                     'description' => $termin->getDescription(),
                     'location'    => $termin->getLocation(),
                     'category'    => $termin->toStringCategories(),
-                    'visibility'  => $termin->properties['CLASS'],
-                    'recurrence'  => $termin->properties['RRULE']['rtype'] == 'SINGLE' ? false : $termin->toStringRecurrence()
+                    'visibility'  => $properties['CLASS'],
+                    'recurrence'  => $properties['RRULE']['rtype'] == 'SINGLE' ? false : $termin->toStringRecurrence()
                 );
 
             }
