@@ -40,6 +40,7 @@ class Controller extends \Trails_Controller
         if (\Request::submitted("redirected")) {
             \NotificationCenter::postNotification("mobile.ClientDidRedirect", $this);
         }
+        $this->response->add_header('Content-Type', 'text/html;charset=utf-8');
     }
 
     /**
