@@ -1,7 +1,7 @@
 helpers = require './helpers.coffee'
 
 template = _.template """
-    <% time = timeString === "00:00-23:59" ? timeString : "ganztägig" %>
+    <% time = timeString === "00:00-23:59" ? "ganztägig" : timeString %>
 
     <a href=#popup-<%- event.id %> data-rel=popup class=ui-icon-info>
       <span class=time><%= time %></span> <%- summary %>
