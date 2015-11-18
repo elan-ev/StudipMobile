@@ -45,7 +45,7 @@
       </li>
 
       <li data-icon="false">
-        <a href="mailto:studip@uni-osnabrueck.de?subject=Stud.IP+Mobile+Feedback+<?= urlencode($GLOBALS['UNI_NAME_CLEAN']) ?>" class="externallink contentLink" data-ajax="false">
+        <a href="mailto:<?=$GLOBALS['UNI_CONTACT']?>?subject=Stud.IP+Mobile+Feedback+<?= urlencode($GLOBALS['UNI_NAME_CLEAN']) ?>" class="externallink contentLink" data-ajax="false">
           <img src="<?= $icon_path ?>info-circle.png"   class="ui-li-icon" />
           <?=_("Feedback")?>
         </a>
