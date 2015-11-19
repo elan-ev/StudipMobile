@@ -17,11 +17,10 @@ class StudipMobile extends StudipPlugin implements SystemPlugin
 
         $mobile_url = PluginEngine::getLink($this, null, '', true);
 
-        /*
         $top_navigation = new Navigation('Mobil', $mobile_url);
         $top_navigation->setImage($this->getPluginUrl() . '/public/images/header.png',
                                   array('title' => 'Zur mobilen Ansicht wechseln'));
-        Navigation::insertItem('/studip_mobile', $top_navigation, 'start');*/
+        Navigation::insertItem('/studip_mobile', $top_navigation, 'start');
 
         $footer_navigation = clone $top_navigation;
         $footer_navigation->setTitle('Mobilansicht');
