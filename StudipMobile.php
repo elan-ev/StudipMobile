@@ -101,6 +101,11 @@ class StudipMobile extends StudipPlugin implements SystemPlugin
             return false;
         }
 
+        // do not redirect on test installations
+        if (strpos($GLOBALS['STUDIP_INSTALLATION_ID'], 'test') !== FALSE) {
+            return false;
+        }
+
         return true;
     }
 
